@@ -1,9 +1,13 @@
 
 
+## 
+The `Raffle.sol` contract is a smart contract for a decentralized lottery system that uses Chainlink VRF to generate random numbers in a secure and verifiable manner. It's designed to ensure fairness and transparency in the selection of a winner, with various mechanisms in place to prevent manipulation and ensure the integrity of the raffle process.
 
 
-
-
+CEI Design
+- Checks(safety, gas efficiency)
+- Effects
+- Interactions
 
 
 ## Style Guide
