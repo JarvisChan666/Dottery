@@ -11,6 +11,7 @@ pragma solidity ^0.8.10;
 
 import {VRFCoordinatorV2Interface} from "@chainlink/contracts/src/v0.8/vrf/interfaces/VRFCoordinatorV2Interface.sol";
 import {VRFConsumerBaseV2} from "@chainlink/contracts/src/v0.8/vrf/VRFConsumerBaseV2.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
 
 // TODO:  Ensure that any other significant state changes or actions are also accompanied by event emissions for transparency.
 contract Raffle is VRFConsumerBaseV2 {
@@ -69,6 +70,9 @@ contract Raffle is VRFConsumerBaseV2 {
         s_lastTimeStamp = block.timestamp;
     }
 
+    /**
+     * @dev Players enter the raffle game.
+     */
     function enterRaffle() external payable {
         if (msg.value < i_entranceFee) {
             revert Raffle__NotEnoughEthSent(msg.value, i_entranceFee);
@@ -84,8 +88,7 @@ contract Raffle is VRFConsumerBaseV2 {
     }
 
     /**
-     * @dev This is the functio that the Chainlink Automation nodes call
-     * to see if it's time to perform an upkeep
+     * @dev Offline, To see if it's time to perform an upkeep, aka automation(Execute our code automated)
      * The following should be true to trigger this func to return true
      * 1. The time interval has passed between raffle runs
      * 2. The raffle is in the OPEN state
@@ -99,6 +102,7 @@ contract Raffle is VRFConsumerBaseV2 {
         bytes memory /* checkData */
     ) public view returns (bool upKeepNeeded, bytes memory /* performData */) {
         // Cache state variables in memory
+        // Only read from storage once and then accessed from the cheaper memory
         uint256 lastTimeStamp = s_lastTimeStamp;
         RaffleState raffleState = s_raffleState;
 
@@ -111,7 +115,8 @@ contract Raffle is VRFConsumerBaseV2 {
     }
 
     /**
-     * @dev Called by Chainlink Keepers. Initiates the process of selecting a raffle winner.
+     * @dev Called by Chainlink Keepers to execute our task automated
+     * Initiates the process of selecting a raffle winner.
      * Requires that certain conditions are met, such as time interval and raffle state.
      */
     // TODO: Ensure that the performUpKeep function can only be called by authorized addresses, such as the Chainlink Keeper network, to prevent unauthorized triggering of the raffle draw.
@@ -137,6 +142,10 @@ contract Raffle is VRFConsumerBaseV2 {
     }
 
     // Override from VRFConsumerBaseV2
+
+    /**
+     * @dev Get the random words and pick winner
+     */
     function fulfillRandomWords(
         uint256 _requestId,
         uint256[] memory _randomWords
@@ -155,15 +164,25 @@ contract Raffle is VRFConsumerBaseV2 {
 
         // Interactions
         // TODO: OpenZeppelin's SafeTransfer library
-        (bool success, ) = winner.call{value: address(this).balance}("");
-        // TODO: consider any other potential points of failure that might need explicit error handling.
-        if (!success) {
-            revert Raffle__TransferFailed();
-        }
+        // function sendValue(address payable recipient, uint256 amount) internal {
+        // if (address(this).balance < amount) {
+        //     revert AddressInsufficientBalance(address(this));
+        // }
+
+        // (bool success, ) = recipient.call{value: amount}("");
+        // if (!success) {
+        //     revert FailedInnerCall();
+        // }
+        // }
+        Address.sendValue(winner, address(this).balance);
+        // No need to check for success as sendValue reverts on failure
     }
 
     /** Getter Function */
     // We won't use it in this contract, so external is gas efficient
+    /**
+     * @dev Getter Function to get entrance fee
+     */
     function getEntranceFee() external view returns (uint256) {
         return i_entranceFee;
     }
